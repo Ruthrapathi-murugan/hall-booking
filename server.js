@@ -8,17 +8,18 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// MongoDB URIs
-const atlasUri = process.env.MONGODB_URI;
+// Use the MongoDB URI from the .env file
 const localUri = process.env.MONGODB_LOCAL_URI;
 
-// Log URIs for debugging
-console.log('Atlas URI:', atlasUri);
-console.log('Local URI:', localUri);
+if (!localUri) {
+    console.error('MONGODB_LOCAL_URI is not defined in .env file');
+    process.exit(1);
+}
 
-// Initialize MongoDB clients
-const atlasClient = new MongoClient(atlasUri);
-const localClient = new MongoClient(localUri);
+const client = new MongoClient(localUri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+});
 
 let roomsCollection;
 let bookingsCollection;
@@ -26,18 +27,11 @@ let bookingsCollection;
 // Connect to MongoDB and initialize collections
 async function connectToMongoDB() {
     try {
-        // Connect to Atlas
-        await atlasClient.connect();
-        console.log('Connected to MongoDB Atlas');
-        const atlasDb = atlasClient.db('hallBookingDB');
-        roomsCollection = atlasDb.collection('rooms');
-        bookingsCollection = atlasDb.collection('bookings');
-
-        // Optionally connect to Local MongoDB
-        await localClient.connect();
+        await client.connect();
         console.log('Connected to Local MongoDB');
-        // You can initialize local collections here if needed
-
+        const db = client.db('hallBookingDB');
+        roomsCollection = db.collection('rooms');
+        bookingsCollection = db.collection('bookings');
     } catch (error) {
         console.error('Error connecting to MongoDB:', error);
         process.exit(1);
@@ -123,7 +117,7 @@ app.get('/customer-bookings/:customerName', async (req, res) => {
     const customerBookings = await bookingsCollection.find({ customerName }).toArray();
 
     const detailedBookings = customerBookings.map(booking => ({
-        roomName: rooms.find(room => room._id.equals(booking.roomID)).roomName,
+        roomName: roomsCollection.find(room => room._id.equals(booking.roomID)).roomName,
         dateStart: booking.dateStart,
         dateEnd: booking.dateEnd,
         bookingID: booking._id,
