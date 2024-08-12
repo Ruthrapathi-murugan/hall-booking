@@ -9,14 +9,12 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Use the MongoDB URI from the .env file
-const localUri = process.env.MONGODB_LOCAL_URI;
 
-if (!localUri) {
-    console.error('MONGODB_LOCAL_URI is not defined in .env file');
-    process.exit(1);
-}
+const clouduri=process.env.MONGODB_URI;
 
-const client = new MongoClient(localUri, {
+
+
+const client = new MongoClient(clouduri, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 });
